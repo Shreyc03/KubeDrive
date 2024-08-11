@@ -1,0 +1,34 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-cronjob
+spec:
+  schedule: "0 0 * * 7"  
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          hostNetwork: true
+          containers:
+            - name: backup-service
+              image: shreyasc03/gdrive-backup:latest
+              env:
+                - name: FOLDER_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: google-drive-folder-id-secret
+                      key: FOLDER_ID
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /data
+                - name: google-service-account-secret
+                  mountPath: /app/service-account-key.json
+                  subPath: service-account-key.json
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: backup-pvc
+            - name: google-service-account-secret
+              secret:
+                secretName: google-service-account-secret
+          restartPolicy: OnFailure
